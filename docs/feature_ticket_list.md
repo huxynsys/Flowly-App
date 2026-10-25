@@ -898,7 +898,7 @@ FT-012, FT-017, FT-020
 
 ### AI Coding Prompt
 
-> Create strongly typed domain models for the Flowlly scheduling engine. Keep them independent from database ORM models. Implement explicit mapping between persistence entities and scheduler domain objects.
+> Create strongly typed domain models for the Flowlly scheduling engine. Keep them independent from persistence models. Implement explicit mapping between persisted records and scheduler domain objects.
 
 ---
 
@@ -3029,7 +3029,7 @@ FT-078, FT-079, FT-075
 
 ---
 
-# 38. EPIC AI — Final MVP Polish
+# 38. EPIC — Final MVP Polish
 
 ---
 

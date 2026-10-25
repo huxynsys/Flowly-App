@@ -1564,9 +1564,9 @@ Deterministic scheduler generates schedule
       ↓
 User follows schedule
       ↓
-Task completed / skipped / delayed
+Task completed / skipped
       ↓
-Flowlly updates remaining schedule
+User chooses "Replan My Day" if the remaining schedule should change
       ↓
 User continues
       ↓

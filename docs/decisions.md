@@ -45,7 +45,7 @@ Post-MVP:
 
 **Rationale:** Supabase Auth and PostgreSQL RLS provide a consistent authorization boundary for the Flutter client and Supabase backend.
 
-## 4. ORM and database
+## 4. Database and migrations
 
 **Decision:** Use Supabase-hosted PostgreSQL and manage schema changes with versioned Supabase CLI migrations.
 

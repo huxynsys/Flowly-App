@@ -134,15 +134,18 @@ Start with basic in-app reminders only; push and email notifications are post-MV
 Use the canonical Flutter and Supabase structure from `decisions.md`:
 
 ```text
-lib/app/
-lib/core/
-lib/features/
-lib/domain/
-lib/data/
-supabase/migrations/
-supabase/functions/
-├── _shared/scheduler/
-└── <function-name>/
+lib/                              # Flutter application source
+├── app/                          # App entry point, router, theme
+├── core/                         # Shared errors, time, validation, widgets
+│   └── widgets/                  # Shared accessible UI primitives
+├── features/                     # Auth, onboarding, Today, schedule, tasks
+├── domain/                       # Client-side domain models and interfaces
+└── data/                         # Client repositories and data sources
+supabase/
+├── migrations/                   # Versioned database migrations
+└── functions/
+    ├── _shared/scheduler/        # Deterministic scheduler and validator
+    └── <function-name>/          # Authenticated TypeScript/Deno functions
 test/
 integration_test/
 ```
@@ -1038,7 +1041,7 @@ Never trust:
 user_id
 ```
 
-provided by the browser.
+provided by the client.
 
 The authenticated session determines ownership.
 
@@ -1233,7 +1236,7 @@ Use the breakpoints shared with `design.md` and the TRD:
 
 ```text
 Mobile: < 640px
-Tablet: 640px–1024px
+Tablet: 640px–<1024px
 Desktop: 1024px–1440px
 Large: > 1440px
 ```
@@ -1262,7 +1265,7 @@ Avoid:
 * Huge client-side state
 * Fetching all tasks unnecessarily
 * Rendering every historical plan
-* Loading AI SDKs into the browser
+* Loading AI SDKs into the Flutter client
 
 ---
 

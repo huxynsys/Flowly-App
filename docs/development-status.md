@@ -111,6 +111,14 @@ The canonical Flutter/Supabase layout is in `decisions.md`.
 
 **FT-002 design reference:** The existence and availability of the referenced Google Stitch screens are unverified. Until confirmed, use `design.md` as the source of design tokens.
 
+### Core Design Token Cross-Check
+
+The canonical values in `design.md` and `implementation_plan.md` are:
+
+* Canvas: `#F5F6F7`
+* Ink: `#151618`
+* Accent: `#C85BD3`
+
 ### Documentation Consistency Pass — October 25, 2026
 
 Aligned the documentation with the user-approved Flutter/Dart, Supabase, and OpenAI direction; clarified RLS ownership, server-only AI secrets, recurring fixed-event scope, and error-handling precedence. Updated files: `decisions.md`, `prd.md`, `trd.md`, `app_flow.md`, `design.md`, `implementation_plan.md`, `security_rules.md`, `feature_ticket_list.md`, `development-status.md`, `ERROR_HANDLING.md`, and `flowlly-app/.env.example`.

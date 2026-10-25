@@ -4,7 +4,7 @@
 
 > **Project security contract**
 >
-> These rules apply to every feature, API route, database query, server action, AI integration, background job, and UI component in Flowlly.
+> These rules apply to the Flutter/Dart client, Supabase Auth, PostgreSQL/RLS, Edge Functions, migrations, AI integrations, background work, and UI. Ordinary data access uses the authenticated Supabase client under RLS; authoritative scheduling and AI operations run through authenticated Edge Functions. Browser-only controls below apply only if a web client is added and are not Flutter MVP release requirements.
 >
 > AI coding tools must follow these rules automatically. Do not weaken a security rule simply because it makes implementation easier.
 >
@@ -17,13 +17,13 @@
 Flowlly must follow these principles:
 
 1. **Never trust the client.**
-2. **Never expose secrets to the browser.**
+2. **Never expose secrets to the client app.**
 3. **Authenticate every protected request.**
 4. **Authorize every resource access.**
 5. **Users can only access their own data unless explicitly authorized otherwise.**
 6. **Validate all input on the server.**
 7. **Treat AI input and output as untrusted data.**
-8. **Use parameterized database queries or an ORM.**
+8. **Use parameterized database operations; never concatenate untrusted input into SQL.**
 9. **Fail securely.**
 10. **Do not leak internal implementation details.**
 11. **Minimize stored personal data.**
@@ -39,29 +39,20 @@ Flowlly must follow these principles:
 Flowlly uses a layered security model:
 
 ```text
-Browser
+Flutter Client
    │
    │ HTTPS
    ▼
-Application
-   │
-   ├── Authentication
-   │
-   ├── Authorization
-   │
-   ├── Input Validation
-   │
-   ├── Rate Limiting
-   │
-   ├── Business Rules
-   │
-   ├── AI Safety / Validation
-   │
-   ▼
-Database
+Supabase Authenticated Access
+   ├── Ordinary CRUD ────────────────► PostgreSQL (RLS)
+   └── Edge Functions
+        ├── Authentication / Authorization
+        ├── Input Validation / Rate Limiting
+        ├── Business Rules / AI Safety
+        └── Authoritative plan operations ► PostgreSQL (RLS)
 ```
 
-The browser is never considered trusted.
+The client is never considered trusted.
 
 The client may request an action, but the server must determine whether that action is valid and authorized.
 
@@ -162,15 +153,15 @@ ENCRYPTION_KEY
 
 AI provider API keys must exist only on the server.
 
-The browser must never call an AI provider directly using a private API key.
+The Flutter client must never call an AI provider directly using a private API key.
 
 Correct architecture:
 
 ```text
-Browser
+Flutter Client
    │
    ▼
-Flowlly Server
+Authenticated Supabase Edge Function
    │
    │ private API key
    ▼
@@ -180,7 +171,7 @@ AI Provider
 Never:
 
 ```text
-Browser
+Flutter Client
    │
    │ AI secret key
    ▼
@@ -191,15 +182,15 @@ AI Provider
 
 # 7. Server-Side AI Proxy
 
-All AI requests must go through a Flowlly server endpoint or server-side service.
+All AI requests must go through an authenticated Supabase Edge Function.
 
 Example:
 
 ```text
-POST /api/ai/plan
+POST /functions/v1/ai-plan
 ```
 
-The browser sends:
+The client sends:
 
 ```json
 {
@@ -232,7 +223,7 @@ The server must:
 Do not create an endpoint such as:
 
 ```text
-POST /api/ai
+POST /functions/v1/ai-raw
 ```
 
 that accepts arbitrary:
@@ -267,13 +258,13 @@ The client may request an approved operation.
 Example:
 
 ```text
-POST /api/ai/replan-day
+POST /functions/v1/ai-plan
 ```
 
 is preferable to:
 
 ```text
-POST /api/ai/raw
+POST /functions/v1/ai-raw
 ```
 
 ---
@@ -285,10 +276,8 @@ AI functionality should be represented by explicit server operations.
 Examples:
 
 ```text
-/api/ai/replan-day
-/api/ai/explain-plan-change
-/api/ai/parse-task
-/api/ai/suggest-schedule
+/functions/v1/ai-plan (post-MVP)
+/functions/v1/ai-explain (post-MVP)
 ```
 
 Each operation has its own:
@@ -335,7 +324,7 @@ max_output_tokens
 
 use that instead.
 
-Never accept the maximum from the browser without server-side validation.
+Never accept the maximum from the client without server-side validation.
 
 ---
 
@@ -354,7 +343,7 @@ Recommended initial limits:
 
 These are server-side limits.
 
-The frontend must not be able to increase them.
+The Flutter client must not be able to increase them.
 
 ---
 
@@ -1101,9 +1090,9 @@ Safe rendering
 
 ---
 
-# 44. CORS
+# 44. CORS (Web Client Only)
 
-Do not use:
+The Flutter mobile client is not subject to browser CORS enforcement. If a web client is added, do not use:
 
 ```text
 Access-Control-Allow-Origin: *
@@ -1111,7 +1100,7 @@ Access-Control-Allow-Origin: *
 
 in production for authenticated APIs.
 
-Explicitly allow only trusted application origins.
+Explicitly allow only trusted web application origins.
 
 Example:
 
@@ -1119,26 +1108,26 @@ Example:
 origin: Deno.env.get("ALLOWED_ORIGIN")
 ```
 
-Only enable credentials when required.
+Only enable credentials when required by the web authentication design.
 
 ---
 
-# 45. CSRF
+# 45. CSRF (Cookie-Based Web Authentication Only)
 
-For cookie-based authentication:
+The Flutter client uses the authenticated Supabase session; CSRF controls apply only if a future web client uses cookie-based authentication. For that web client:
 
 * Use SameSite cookies.
 * Validate Origin/Referer where appropriate.
 * Use CSRF tokens for state-changing requests when required by the authentication architecture.
 * Never assume SameSite alone is sufficient for every deployment architecture.
 
-All state-changing operations must be protected against CSRF where cookies are used for authentication.
+Protect state-changing web requests against CSRF wherever cookies are used for authentication.
 
 ---
 
-# 46. HTTP Security Headers
+# 46. HTTP Security Headers (Web Hosting Only)
 
-Production must include appropriate security headers.
+These headers apply to web hosting, not the Flutter mobile client. Configure them if a web client is introduced:
 
 At minimum:
 
@@ -1150,7 +1139,7 @@ Referrer-Policy: strict-origin-when-cross-origin
 Strict-Transport-Security
 ```
 
-For modern browser support, consider:
+For modern browser support, also consider:
 
 ```text
 Permissions-Policy
@@ -1176,13 +1165,11 @@ where practical.
 
 ---
 
-# 47. HTTPS
+# 47. HTTPS and Session Storage
 
-Production traffic must use HTTPS.
+All production client connections to Supabase services must use HTTPS. The mobile client must not connect over plaintext HTTP.
 
-HTTP should redirect to HTTPS.
-
-Secure cookies must be enabled in production.
+Secure cookies are required only for a future web client that uses cookie-based authentication. The Flutter app must use the Supabase Flutter SDK's supported session handling and platform security guidance.
 
 Never send:
 
@@ -1211,7 +1198,7 @@ environment variables
 provider responses containing secrets
 ```
 
-to the browser.
+to the client.
 
 ---
 
@@ -1413,7 +1400,7 @@ Never expose them to the client.
 
 Store them securely.
 
-Do not send access tokens to the browser.
+Do not expose access tokens outside the authenticated client session.
 
 Request the minimum calendar scopes required.
 
@@ -1874,7 +1861,7 @@ Do not allow state changes through GET requests.
 Never:
 
 ```text
-GET /api/delete-task?id=123
+GET /functions/v1/delete-task?id=123
 ```
 
 ---
@@ -1897,7 +1884,7 @@ This prevents duplicate actions caused by:
 ```text
 network retries
 double clicks
-browser retries
+client retries
 provider retries
 ```
 
@@ -2030,14 +2017,14 @@ theme=light
 
 ---
 
-# 87. Browser Storage
+# 87. Flutter Client Storage
 
 Before storing personal schedule data locally, determine whether it is necessary.
 
 If local persistence is used:
 
 * Minimize stored data.
-* Avoid storing authentication credentials.
+* Use the Supabase Flutter SDK's supported session handling and platform security guidance for authentication credentials.
 * Clear data on account sign-out where appropriate.
 * Handle multiple-user/shared-device scenarios.
 
@@ -2561,7 +2548,7 @@ tool availability
 response schema
 ```
 
-The browser may not override these values.
+The Flutter client may not override these values.
 
 ---
 
@@ -2697,8 +2684,7 @@ are handled according to the retention policy.
 Sign out should:
 
 ```text
-invalidate session
-clear appropriate cookies
+sign out through Supabase Auth
 clear sensitive client state
 ```
 
@@ -2726,25 +2712,19 @@ and revoke sessions.
 
 ---
 
-# 124. Security Headers Checklist
+# 124. Supabase Service Transport Check
 
 Production must verify:
 
 ```text
-[ ] HTTPS
-[ ] HSTS
-[ ] CSP
-[ ] X-Content-Type-Options
-[ ] X-Frame-Options
-[ ] Referrer-Policy
-[ ] Permissions-Policy where appropriate
+[ ] Supabase service endpoints use TLS
 ```
 
 ---
 
-# 125. Content Security Policy
+# 125. Content Security Policy (Web Client Only)
 
-Start with a restrictive policy.
+If Flowlly adds a web client, start with a restrictive policy.
 
 Conceptually:
 
@@ -2766,9 +2746,9 @@ Do not blindly copy a CSP without testing it.
 
 ---
 
-# 126. Third-Party Scripts
+# 126. Third-Party Scripts (Web Client Only)
 
-Minimize third-party JavaScript.
+Minimize third-party JavaScript in any future web client. For Flutter, minimize third-party packages and plugins instead.
 
 Every third-party script increases:
 
@@ -2889,7 +2869,7 @@ XSS in AI output
 Attempt:
 
 ```text
-POST /api/ai/replan-day
+POST /functions/v1/ai-plan
 ```
 
 with:
@@ -3082,9 +3062,9 @@ Before every production deployment:
 [ ] .env is not committed
 [ ] .env.example exists
 [ ] Production secrets configured securely
-[ ] HTTPS enabled
-[ ] Security headers enabled
-[ ] CORS restricted
+[ ] All Supabase service connections use HTTPS
+[ ] Web security headers configured if a web client is deployed
+[ ] Web CORS restricted if a web client is deployed
 [ ] Rate limiting enabled
 [ ] Authentication enabled
 [ ] Authorization verified
@@ -3108,9 +3088,9 @@ Before every production deployment:
 
 ```text
 [ ] AI calls only originate from the server
-[ ] Browser cannot access AI API key
-[ ] Browser cannot choose arbitrary model
-[ ] Browser cannot choose arbitrary token budget
+[ ] Flutter client cannot access AI API key
+[ ] Flutter client cannot choose arbitrary model
+[ ] Flutter client cannot choose arbitrary token budget
 [ ] max_tokens/max_output_tokens is server-controlled
 [ ] Input size is limited
 [ ] AI requests are rate-limited
@@ -3191,7 +3171,7 @@ When an AI coding agent modifies this project:
 * Add `dangerouslySetInnerHTML` casually.
 * Use `eval`.
 * Allow arbitrary SQL.
-* Allow arbitrary model selection from the browser.
+* Allow arbitrary model selection from the client.
 * Allow client-controlled `max_tokens` without server enforcement.
 * Give AI direct unrestricted database access.
 * Skip authorization because the UI hides a button.
@@ -3244,7 +3224,7 @@ have all been addressed.
 
 # 147. Final Security Rule
 
-> **If the browser can control it, the server must verify it.**
+> **If the client can control it, the server must verify it.**
 
 This applies to:
 

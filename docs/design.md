@@ -1931,7 +1931,7 @@ Mobile:
 < 640px
 
 Tablet:
-640px – 1024px
+640px – < 1024px
 
 Desktop:
 1024px – 1440px

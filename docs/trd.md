@@ -3089,7 +3089,7 @@ Large Desktop
 
 
 
-Use the same numeric responsive layout thresholds as \`design.md\` and \`implementation_plan.md\`: mobile \`< 640px\`, tablet \`640px–1024px\`, desktop \`1024px–1440px\`, and large desktop \`> 1440px\`.
+Use the same numeric responsive layout thresholds as \`design.md\` and \`implementation_plan.md\`: mobile \`< 640px\`, tablet \`640px–<1024px\`, desktop \`1024px–1440px\`, and large desktop \`> 1440px\`.
 
 
 
@@ -3439,7 +3439,7 @@ The system must:
 
 \* Secure secrets.
 
-\* Avoid exposing API keys to the browser.
+\* Avoid exposing API keys to the Flutter client.
 
 \* Sanitize user-generated content where necessary.
 
